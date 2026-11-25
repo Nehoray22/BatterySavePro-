@@ -1,0 +1,45 @@
+name: Build iPhone 17 Pro IPA (BatterySavePro)
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-unsigned-ipa:
+    runs-on: macos-14
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode Project
+        run: xcodegen generate
+
+      - name: Build Unsigned ARM64 iOS App (iPhone 17 Pro)
+        run: |
+          xcodebuild clean build \
+            -project BatterySavePro.xcodeproj \
+            -scheme BatterySavePro \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Package .app into BatterySavePro-iPhone17Pro.ipa
+        run: |
+          mkdir -p Payload
+          cp -r build/Build/Products/Release-iphoneos/BatterySavePro.app Payload/
+          zip -r9 BatterySavePro-iPhone17Pro.ipa Payload
+
+      - name: Upload Ready-to-Sideload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BatterySavePro-iPhone17Pro-IPA
+          path: BatterySavePro-iPhone17Pro.ipa
